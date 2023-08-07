@@ -1,6 +1,15 @@
-import express, { Express } from "express";
+import express, { Express } from 'express';
 
-export default class Application {
+export interface IApplication {
+  run(): void;
+}
+
+export interface IApplicationProxy extends IApplication {
+  readonly isWebApplication: boolean;
+  readonly dependencyPaths: string[];
+}
+
+export default class Application implements IApplication {
   private static app: Express;
 
   public get httpServer() {
@@ -8,8 +17,8 @@ export default class Application {
   }
 
   constructor() {
-    if (!this.httpServer) {
-      throw new Error("Do not allow create multiple HTTP server instance.");
+    if (!!this.httpServer) {
+      throw new Error('Do not allow create multiple HTTP server instance.');
     }
     Application.app = express();
   }

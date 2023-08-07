@@ -15,8 +15,10 @@
     "strictPropertyInitialization": false,
     "allowJs": false,
     "paths": {
-      "@src": ["src"],
-      "@src/*": ["src/*"]
+      "@application": ["./src/application"],
+      "@application/*": ["./src/application/*"],
+      "@framework": ["./src/framework"],
+      "@framework/*": ["./src/framework/*"]
     }
   },
   "include": ["src"],

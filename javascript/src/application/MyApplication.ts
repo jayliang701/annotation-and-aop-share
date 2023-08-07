@@ -1,3 +1,6 @@
-import WebApplication from "@src/framework/Application";
+import { WebApplication } from '@framework/annotation/core';
 
-export default class MyApplication extends WebApplication {}
+@WebApplication({
+  scans: ['application/controller'],
+})
+export default class MyApplication {}

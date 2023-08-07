@@ -1,3 +1,4 @@
-import { startup } from "./framework/IoC";
+import MyApplication from '@application/MyApplication';
+import { startup } from '@framework/IoC';
 
-startup(new )
+startup(new MyApplication());
