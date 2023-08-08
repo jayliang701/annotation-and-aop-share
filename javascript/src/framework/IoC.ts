@@ -1,11 +1,15 @@
-import { IApplicationProxy } from './Application';
-import path from 'path';
-import recursive from 'recursive-readdir';
-import { inject } from './context/container';
+import { IApplicationProxy } from "./Application";
+import path from "path";
+import recursive from "recursive-readdir";
+import { inject } from "./context/container";
 
 export function resolveClass(namespace: string) {
   try {
-    const module = require(path.resolve(__dirname, '../../dist', namespace + '.js'));
+    const module = require(path.resolve(
+      __dirname,
+      "../../dist",
+      namespace + ".js"
+    ));
     return module.default;
   } catch {
     return null;
@@ -13,16 +17,16 @@ export function resolveClass(namespace: string) {
 }
 
 export function resolveJSFiles(namespace: string): Promise<any[]> {
-  const folder = path.resolve(__dirname, '../../dist', namespace);
+  const folder = path.resolve(__dirname, "../../dist", namespace);
   return new Promise((resolve) => {
     recursive(folder).then(
       function (files: string[]) {
-        const jsFiles: string[] = files.filter((file) => file.endsWith('.js'));
+        const jsFiles: string[] = files.filter((file) => file.endsWith(".js"));
         resolve(jsFiles);
       },
       function (error) {
-        console.error('something exploded', error);
-      },
+        console.error("something exploded", error);
+      }
     );
   });
 }
@@ -42,7 +46,7 @@ export async function startup<T>(entry: T) {
       const jsFiles = await resolveJSFiles(filePath);
       jsFiles.forEach((jsFile) => {
         scanedClasses.push({
-          namespace: filePath,
+          namespace: jsFile,
           Cls: require(jsFile).default,
         });
       });
