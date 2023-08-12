@@ -1,41 +1,69 @@
-import { BeanClass } from './types';
+import { ClassWithAnnotations, IApplicationContext, IBeanLifeCycleHandler, IBean } from './types';
 
-const beans: Map<string, any> = new Map();
+const injectedBeans: Record<string, IBean[]> = {};
 
-const beanInjectListeners: Map<string, Function[]> = new Map();
+const context: IApplicationContext = {
+  getBeansByNamespace(namespace: string): IBean[] {
+    const beans = injectedBeans[namespace] || [];
+    return beans;
+  },
+  getBeansByAnnotationNamespace(annotationNamespace: string): IBean[] {
+    const beans: IBean[] = [];
+    for (const beanNamespace in injectedBeans) {
+      for (const bean of injectedBeans[beanNamespace]) {
+        const beanClass = bean.constructor as ClassWithAnnotations;
+        if (beanClass.$annotations && beanClass.$annotations[annotationNamespace]) {
+          beans.push(bean);
+        }
+      }
+    }
+    return beans;
+  },
+};
 
-export function inject(Cls: BeanClass) {
+const isBeanClass = (Cls: { new (...args: any[]): {} }): boolean => {
+  return !!Cls.prototype.beanMetadata;
+};
+
+export function inject(Cls: any) {
+  if (!isBeanClass(Cls)) {
+    throw new Error(`${Cls} is not a Bean Class. Can't be injected.`);
+  }
+  const bean = new Cls();
+  injectBean(bean as IBean);
+}
+
+export function injectBean(bean: IBean) {
+  const Cls = bean.constructor;
   const { $namespace: namespace } = Cls;
 
-  const instance = new Cls();
-  beans[namespace] = instance;
-  console.log('inject bean', instance);
+  injectedBeans[namespace] = injectedBeans[namespace] || [];
+  injectedBeans[namespace].push(bean);
+
+  console.log('inject bean', bean);
 
   Object.getOwnPropertyNames(Cls.prototype).forEach((key) => {
-    const func = instance[key];
+    const func = bean[key];
     if (typeof func === 'function') {
       const descriptor = Object.getOwnPropertyDescriptor(Cls.prototype, key);
-      console.log(descriptor);
+      if (
+        descriptor &&
+        typeof descriptor.value === 'function' &&
+        descriptor.value['$beanInjector']
+      ) {
+        const childBean = (descriptor.value as Function).apply(bean, []);
+        injectBean(childBean);
+
+        const childBeanWithLifeCycleHandler = childBean as IBeanLifeCycleHandler;
+        if (!!childBeanWithLifeCycleHandler.onBeanInjected) {
+          // This simple IoC framework doesn't handle Injection Sequence issue.
+          // So using setTimeout here to ensure APIController is injected
+          // before HttpServer starts to register routers
+          setTimeout(() => {
+            childBeanWithLifeCycleHandler.onBeanInjected(context);
+          }, 0);
+        }
+      }
     }
   });
-
-  notifyBeanInjection(Cls, instance);
 }
-
-function notifyBeanInjection(Cls: BeanClass, bean: any) {
-  const listeners = beanInjectListeners.get(Cls.$namespace);
-  if (!listeners) return;
-  listeners.forEach((handler) => {
-    handler(bean);
-  });
-}
-
-export function addBeanInjectionListener(beanNamespace: string, handler: (bean: any) => void) {
-  const listeners = beanInjectListeners.get(beanNamespace) || [];
-  if (listeners.indexOf(handler) >= 0) return;
-
-  listeners.push(handler);
-  beanInjectListeners.set(beanNamespace, listeners);
-}
-
-export function injectHook() {}

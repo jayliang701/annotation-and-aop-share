@@ -1,7 +1,19 @@
-export type Annotation = {
+export type FunctionHandler = (
+  target: any,
+  propertyKey: string,
+  descriptor: PropertyDescriptor,
+) => void;
+
+export type ClassHandler = <T extends { new (...args: any[]): {} }>(targetClass: T) => T;
+
+export type Annotation<T extends object = Record<string, any>> = {
   namespace: string;
-  params: Record<string, any>;
+  params: T;
 };
+
+export type FunctionWithAnnotations = {
+  $annotations: Record<string, Annotation>;
+} & ((...args: any) => any);
 
 export type ClassWithAnnotations = {
   $annotations: Record<string, Annotation>;
@@ -14,4 +26,18 @@ export type BeanClass = {
 
 export interface BeanHandler {
   beanInjected(bean: any, cls: BeanClass, container: any): void;
+}
+
+export interface IBean {
+  constructor: BeanClass;
+}
+
+export interface IBeanLifeCycleHandler {
+  onBeanInjected(context: IApplicationContext): void;
+}
+
+export interface IApplicationContext {
+  getBeansByNamespace(namespace: string): IBean[];
+
+  getBeansByAnnotationNamespace(annotationNamespace: string): IBean[];
 }
